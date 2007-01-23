@@ -1,0 +1,15 @@
+.cvsignore
+Changes
+MANIFEST
+META.yml
+Makefile.PL
+README
+lib/Scalar/Number.pm
+t/class_all.t
+t/class_i32_f52.t
+t/class_i64_f52.t
+t/id_cmp.t
+t/part.t
+t/val_cmp_all.t
+t/val_cmp_i32_f52.t
+t/val_cmp_i64_f52.t

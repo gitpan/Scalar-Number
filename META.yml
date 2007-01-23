@@ -1,0 +1,12 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         Scalar-Number
+version:      0.000
+version_from: lib/Scalar/Number.pm
+installdirs:  site
+requires:
+    Data::Float:                   0.004
+    Data::Integer:                 0.000
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

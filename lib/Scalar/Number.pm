@@ -1,0 +1,347 @@
+=head1 NAME
+
+Scalar::Number - numeric aspects of scalars
+
+=head1 SYNOPSIS
+
+	use Scalar::Number qw(scalar_num_part);
+
+	$num = scalar_num_part($scalar);
+
+	use Scalar::Number qw(sclnum_is_natint sclnum_is_float);
+
+	if(sclnum_is_natint($value)) { ...
+	if(sclnum_is_float($value)) { ...
+
+	use Scalar::Number qw(sclnum_val_cmp sclnum_id_cmp);
+
+	@sorted_nums = sort { sclnum_val_cmp($a, $b) } @floats;
+	@sorted_nums = sort { sclnum_id_cmp($a, $b) } @floats;
+
+=head1 DESCRIPTION
+
+This module is about the numeric part of plain (string) Perl scalars.
+A scalar has a numeric value, which may be expressed in either the
+native integer type or the native floating point type.  Many values
+are expressible both ways, in which case the exact representation is
+insignificant.  To fully understand Perl arithmetic it is necessary to
+know about both of these representations, and the differing behaviours
+of numbers according to which way they are expressible.
+
+This module provides functions to extract the numeric part of a scalar,
+classify a number by expressibility, and compare numbers across
+representations.
+
+=cut
+
+package Scalar::Number;
+
+use warnings;
+use strict;
+
+use Carp qw(croak);
+use Data::Float 0.004 qw(
+	have_signed_zero significand_bits max_integer
+	float_is_infinite pow2 mult_pow2
+);
+use Data::Integer 0.000 qw(natint_bits min_natint max_natint);
+
+our $VERSION = "0.000";
+
+use base "Exporter";
+our @EXPORT_OK = qw(
+	scalar_num_part
+	sclnum_is_natint sclnum_is_float
+	sclnum_val_cmp sclnum_id_cmp
+);
+
+# Floating point constants arount max_natint: high_max has the value
+# max_natint+1, and low_max is the next lower floating point value.
+# reduced_high_max is the difference between them.  These are only
+# valid if there are native integers that are not representable in
+# floating point.  In other cases they have unpredictable values and
+# are not used.
+#
+# Note: bug in Perl (bug in v5.8.8, bug ID #41288): floating point values
+# in the high positive part of the native integer range don't necessarily
+# get translated to native integers for integer operations as they're
+# supposed to.  Therefore it is vital that low_max below is defined using
+# integer arithmetic.
+
+use constant high_max => pow2(natint_bits);
+use constant low_max => ((1 << (natint_bits-1)) -
+			 (1 << (natint_bits - (significand_bits+1)))) +
+			(1 << (natint_bits-1));
+use constant reduced_high_max => 1 << (natint_bits - (significand_bits+1));
+
+=head1 FUNCTIONS
+
+=head2 Decomposition
+
+=over
+
+=item scalar_num_part(SCALAR)
+
+Extracts the numeric value of SCALAR, and returns it as a pure numeric
+scalar.
+
+Every scalar has both a string value and a numeric value.  In pure string
+scalars, those resulting from string literals or string operations,
+the numeric value is determined from the string value.  In pure numeric
+scalars, those resulting from numeric literals or numeric operations,
+the string value is determined from the numeric value.  In the general
+case, however, a plain scalar's string and numeric values may be
+set independently, which is known as a dualvar.  Non-plain scalars,
+principally references, determine their string and numeric values in other
+ways, and in particular a reference to a blessed object can stringify
+and numerify however the class wishes.
+
+This function does not warn if given an ostensibly non-numeric argument,
+because the whole point of it is to extract the numeric value of scalars
+that are not pure numeric.
+
+=cut
+
+my %zero = (
+	"+0+0" => 0,
+	"+0-0" => +0.0,
+	"-0+0" => -0.0,
+);
+sub scalar_num_part($) {
+	my($scalar) = @_;
+	no warnings "numeric";
+	if(have_signed_zero && $scalar == 0) {
+		return my $zero = $zero{sprintf("%+.f%+.f", $_[0], -$_[0])};
+	} else {
+		return 0 + $scalar;
+	}
+}
+
+=back
+
+=head2 Classification
+
+=over
+
+=item sclnum_is_natint(VALUE)
+
+Returns a boolean indicating whether the provided VALUE can be represented
+in the native integer data type.  If the floating point type includes
+signed zeroes then they do not qualify; the only zero representable in
+the integer type is unsigned.
+
+Only the numeric value of the scalar VALUE is examined.  The string
+value is ignored.
+
+=cut
+
+sub sclnum_is_natint($) {
+	my($val) = @_;
+	if(have_signed_zero && $val == 0) {
+		return sprintf("%+.f%+.f", $_[0], -$_[0]) eq "+0+0";
+	} elsif(int($val) != $val) {
+		return 0;
+	} elsif(significand_bits+1 >= natint_bits) {
+		# all native integers are representable as floats, so
+		# straight comparison against max_natint works
+		return $val >= min_natint && $val <= max_natint;
+	} else {
+		# Some native integers can't be exactly represented as
+		# floats, so naive comparisons will cause lossy
+		# conversions.  min_natint, being the negation of a power
+		# of two, can be represented correctly as a float, but
+		# max_natint cannot.  We have two float constants, low_max
+		# and high_max, which are the adjacent representable
+		# values bracketing the value of max_natint.  A value
+		# below low_max compares so, and so is easily accepted.
+		# A float that is above high_max compares so, and so is
+		# easily rejected.
+		#
+		# What remains is the float values low_max and high_max
+		# themselves, and all the integers in the range [low_max,
+		# high_max).  The only one of these values that is to be
+		# rejected is high_max itself, but it can't be directly
+		# detected because any of the integers except for low_max
+		# might convert to high_max when floated for comparison.
+		# The solution is to subtract out low_max, leaving much
+		# smaller values that are all exactly representable as
+		# integers.  high_max can then be correctly detected.
+		return $val >= min_natint &&
+			($val < low_max ||
+			 ($val <= high_max &&
+			  $val - low_max != reduced_high_max));
+	}
+}
+
+=item sclnum_is_float(VALUE)
+
+Returns a boolean indicating whether the provided VALUE can be represented
+in the native floating point data type.  If the floating point type
+includes signed zeroes then an unsigned zero (from the native integer
+type) does not qualify.
+
+Only the numeric value of the scalar VALUE is examined.  The string
+value is ignored.
+
+=cut
+
+sub sclnum_is_float($) {
+	my($val) = @_;
+	if(have_signed_zero && $val == 0.0) {
+		return sprintf("%+.f%+.f", $_[0], -$_[0]) ne "+0+0";
+	} elsif(int($val) != $val || float_is_infinite($val)) {
+		return 1;
+	} elsif(significand_bits+1 >= natint_bits) {
+		# all native integers are representable as floats
+		# (except possibly zero, handled above)
+		return 1;
+	} else {
+		# any integer within the continuous integer range of the
+		# float type is a float
+		return 1 if $val >= -max_integer() && $val <= max_integer;
+		# Anything outside the native integer range is trivially
+		# a float.  We can't reliably detect the upper end of this
+		# range, because max_natint isn't representable as a
+		# float, so compare against the representable high_max.
+		return 1 if $val < min_natint || $val > high_max;
+		# What remains is an integer that is either high_max or
+		# representable as a native integer.  Whether it is a
+		# float depends on the length of its binary representation.
+		if($val > low_max) {
+			# Might be high_max, so we can't use integer
+			# arithmetic on it directly.  Shift it down one
+			# bit so that we definitely can.  If the bit we
+			# lose is set then it's definitely not a float.
+			$val -= (1 << (natint_bits-1));
+			return 0 if ($val & 1);
+			$val = ($val >> 1) + (1 << (natint_bits-2));
+		} else {
+			$val = abs($val);
+		}
+		while($val >= (1 << (significand_bits+1))) {
+			return 0 if ($val & 1);
+			$val >>= 1;
+		}
+		return 1;
+	}
+}
+
+=back
+
+=head2 Comparison
+
+=over
+
+=item sclnum_val_cmp(A, B)
+
+Numerically compares the values A and B.  Integer and floating point
+values are compared correctly with each other, even if there is no
+available format in which both values can be accurately represented.
+Returns -1, 0, +1, or undef, indicating whether A is less than, equal
+to, greater than, or not comparable with B.  The "not comparable"
+situation arises if either value is a floating point NaN (not-a-number).
+All flavours of zero compare equal.
+
+This is very similar to Perl's built-in <=> operator.  The only difference
+is the capability to compare integer against floating point (where neither
+can be represented exactly in the other's format).  <=> performs such
+comparisons in floating point, losing accuracy of the integer value.
+
+Only the numeric values of the scalars A and B are examined.  The string
+values are ignored.
+
+=cut
+
+sub sclnum_val_cmp($$) {
+	if(significand_bits+1 >= natint_bits) {
+		# All native integers are exactly representable in
+		# floating point, so a direct comparison in floating
+		# point always yields the correct answer.
+		return $_[0] <=> $_[1];
+	}
+	# Comparison between an integer and a float might be lossy.
+	# Specifically, it could show values as equal when they're
+	# not.  It can never show equal values as unequal, or give
+	# the opposite of the correct order.  So first do the basic
+	# comparison, and perform further analysis only if that
+	# shows equality.
+	my $cmp = $_[0] <=> $_[1];
+	# The only case where values can appear equal where they're not
+	# is where high integers max_natint and immediately lower values
+	# are not representable as a float, they are compared against
+	# high_max (max_natint+1), and they get rounded up to high_max.
+	# This only happens if max_natint is not representable as a
+	# float, and in the range [low_max, high_max).  The solution is
+	# to subtract out low_max for these comparisons.
+	if(significand_bits+1 < natint_bits && defined($cmp) && $cmp == 0 &&
+			$_[0] >= low_max && $_[0] <= high_max &&
+			$_[1] >= low_max && $_[1] <= high_max) {
+		$cmp = ($_[0] - low_max) <=> ($_[1] - low_max);
+	}
+	return $cmp;
+}
+
+=item sclnum_id_cmp(A, B)
+
+This is a comparison function supplying a total ordering of scalar
+numeric values.  Returns -1, 0, or +1, indicating whether A is to be
+sorted before, the same as, or after B.
+
+The ordering is of the identities of numeric values, not their numerical
+values.  If floating point zeroes are signed, then the three types
+(positive, negative, and unsigned) are considered to be distinct.
+NaNs compare equal to each other, but different from all numeric values.
+The exact ordering provided is mostly numerical order: NaNs come first,
+followed by negative infinity, then negative finite values, then negative
+zero, then unsigned zero, then positive zero, then positive finite values,
+then positive infinity.
+
+In addition to sorting, this function can be useful to check for a zero
+of a particular sign.
+
+Only the numeric values of the scalars A and B are examined.  The string
+values are ignored.
+
+=cut
+
+my %zero_order = (
+	"-0+0" => 0,
+	"+0+0" => 1,
+	"+0-0" => 2,
+);
+sub sclnum_id_cmp($$) {
+	my($a, $b) = @_;
+	if($a != $a) {
+		return $b != $b ? 0 : -1;
+	} elsif($b != $b) {
+		return +1;
+	} elsif(have_signed_zero && $a == 0 && $b == 0) {
+		return $zero_order{sprintf("%+.f%+.f", $_[0], -$_[0])} <=>
+			$zero_order{sprintf("%+.f%+.f", $_[1], -$_[1])};
+	} else {
+		return sclnum_val_cmp($a, $b);
+	}
+}
+
+=back
+
+=head1 SEE ALSO
+
+L<Data::Float>,
+L<Data::Integer>,
+L<perlnumber(1)>
+
+=head1 AUTHOR
+
+Andrew Main (Zefram) <zefram@fysh.org>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2007 Andrew Main (Zefram) <zefram@fysh.org>
+
+This module is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
+
+1;
