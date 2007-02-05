@@ -46,7 +46,7 @@ use Data::Float 0.004 qw(
 );
 use Data::Integer 0.000 qw(natint_bits min_natint max_natint);
 
-our $VERSION = "0.000";
+our $VERSION = "0.001";
 
 use base "Exporter";
 our @EXPORT_OK = qw(
@@ -111,7 +111,8 @@ sub scalar_num_part($) {
 	my($scalar) = @_;
 	no warnings "numeric";
 	if(have_signed_zero && $scalar == 0) {
-		return my $zero = $zero{sprintf("%+.f%+.f", $_[0], -$_[0])};
+		my $val = $_[0];
+		return my $zero = $zero{sprintf("%+.f%+.f", $val, -$val)};
 	} else {
 		return 0 + $scalar;
 	}
@@ -138,7 +139,8 @@ value is ignored.
 sub sclnum_is_natint($) {
 	my($val) = @_;
 	if(have_signed_zero && $val == 0) {
-		return sprintf("%+.f%+.f", $_[0], -$_[0]) eq "+0+0";
+		$val = $_[0];
+		return sprintf("%+.f%+.f", $val, -$val) eq "+0+0";
 	} elsif(int($val) != $val) {
 		return 0;
 	} elsif(significand_bits+1 >= natint_bits) {
@@ -188,7 +190,8 @@ value is ignored.
 sub sclnum_is_float($) {
 	my($val) = @_;
 	if(have_signed_zero && $val == 0.0) {
-		return sprintf("%+.f%+.f", $_[0], -$_[0]) ne "+0+0";
+		$val = $_[0];
+		return sprintf("%+.f%+.f", $val, -$val) ne "+0+0";
 	} elsif(int($val) != $val || float_is_infinite($val)) {
 		return 1;
 	} elsif(significand_bits+1 >= natint_bits) {
@@ -253,32 +256,30 @@ values are ignored.
 =cut
 
 sub sclnum_val_cmp($$) {
-	if(significand_bits+1 >= natint_bits) {
-		# All native integers are exactly representable in
-		# floating point, so a direct comparison in floating
-		# point always yields the correct answer.
-		return $_[0] <=> $_[1];
-	}
+	my($a, $b) = @_;
 	# Comparison between an integer and a float might be lossy.
 	# Specifically, it could show values as equal when they're
 	# not.  It can never show equal values as unequal, or give
 	# the opposite of the correct order.  So first do the basic
 	# comparison, and perform further analysis only if that
-	# shows equality.
-	my $cmp = $_[0] <=> $_[1];
-	# The only case where values can appear equal where they're not
-	# is where high integers max_natint and immediately lower values
-	# are not representable as a float, they are compared against
-	# high_max (max_natint+1), and they get rounded up to high_max.
-	# This only happens if max_natint is not representable as a
-	# float, and in the range [low_max, high_max).  The solution is
-	# to subtract out low_max for these comparisons.
-	if(significand_bits+1 < natint_bits && defined($cmp) && $cmp == 0 &&
-			$_[0] >= low_max && $_[0] <= high_max &&
-			$_[1] >= low_max && $_[1] <= high_max) {
-		$cmp = ($_[0] - low_max) <=> ($_[1] - low_max);
+	# shows equality and integer->float conversion is in fact
+	# lossy.
+	my $cmp = $a <=> $b;
+	return $cmp unless natint_bits > significand_bits+1 &&
+			   defined($cmp) && $cmp == 0;
+	# do the rest in positive values
+	($a, $b) = (-$b, -$a) if $a < 0;
+	# Subtract out powers of two until a difference is detected or we
+	# get into the safely comparable range.  Powers of two can be
+	# represented as both float and int, so all the arithmetic is exact.
+	for(my $t = -min_natint(); $t != (1 << significand_bits); $t >>= 1) {
+		next unless $a >= $t && $b >= $t;
+		$a -= $t;
+		$b -= $t;
+		$cmp = $a <=> $b;
+		return $cmp unless $cmp == 0;
 	}
-	return $cmp;
+	return 0;
 }
 
 =item sclnum_id_cmp(A, B)
@@ -316,8 +317,9 @@ sub sclnum_id_cmp($$) {
 	} elsif($b != $b) {
 		return +1;
 	} elsif(have_signed_zero && $a == 0 && $b == 0) {
-		return $zero_order{sprintf("%+.f%+.f", $_[0], -$_[0])} <=>
-			$zero_order{sprintf("%+.f%+.f", $_[1], -$_[1])};
+		($a, $b) = @_;
+		return $zero_order{sprintf("%+.f%+.f", $a, -$a)} <=>
+			$zero_order{sprintf("%+.f%+.f", $b, -$b)};
 	} else {
 		return sclnum_val_cmp($a, $b);
 	}

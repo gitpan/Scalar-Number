@@ -1,4 +1,4 @@
-use Test::More tests => 25;
+use Test::More tests => 35;
 
 use Data::Float 0.000 qw(have_signed_zero have_nan have_infinite);
 
@@ -6,7 +6,8 @@ BEGIN { use_ok "Scalar::Number", qw(sclnum_is_natint sclnum_is_float); }
 
 sub check($$$) {
 	my($expect_natint, $expect_float, $value) = @_;
-	my $desc = sprintf("status of %s (%.1f)", my $cval = $value, $value);
+	my $desc = sprintf("status of %s (%.1f)",
+			my $sval = $value, my $fval = $value);
 	is !!sclnum_is_natint($value), !!$expect_natint, "integer $desc";
 	is !!sclnum_is_float($value), !!$expect_float, "float $desc";
 }
@@ -18,6 +19,16 @@ if(have_signed_zero) {
 } else {
 	check 1, 1, 0;
 	SKIP: { skip "no signed zeroes", 4; }
+}
+
+foreach my $func (\&sclnum_is_natint, \&sclnum_is_float) {
+	foreach my $ozero (0, +0.0, -0.0) {
+		my $nzero = $ozero;
+		my $tzero = $ozero;
+		$func->($tzero);
+		is sprintf("%+.f%+.f%+.f", $tzero, -$tzero, - -$tzero),
+		   sprintf("%+.f%+.f%+.f", $nzero, -$nzero, - -$nzero);
+	}
 }
 
 SKIP: {
@@ -32,7 +43,9 @@ SKIP: {
 }
 
 check 1, 1, 1;
+check 1, 1, 1.0;
 check 1, 1, -1;
+check 1, 1, -1.0;
 check 0, 1, 0.5;
 check 0, 1, -0.5;
 check 0, 1, 1.5;

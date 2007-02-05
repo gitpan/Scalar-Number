@@ -1,4 +1,4 @@
-use Test::More tests => 257;
+use Test::More tests => 353;
 
 use Data::Float 0.000 qw(have_infinite have_signed_zero have_nan pow2);
 
@@ -32,9 +32,19 @@ for(my $ia = @values; $ia--; ) {
 		SKIP: {
 			my $a = $values[$ia];
 			my $b = $values[$ib];
-			skip "special value not available", 1
+			my $a_is_z = ($ia >= 7 && $ia < 10) ? 1 : 0;
+			my $b_is_z = ($ib >= 7 && $ib < 10) ? 1 : 0;
+			skip "special value not available", 1+$a_is_z+$b_is_z
 				unless defined($a) && defined($b);
+			my $na = $a;
+			my $nb = $b;
 			is sclnum_id_cmp($a, $b), ($ia <=> $ib);
+			is sprintf("%+.f%+.f%+.f", $a, -$a, - -$a),
+			   sprintf("%+.f%+.f%+.f", $na, -$na, - -$na)
+				if $a_is_z;
+			is sprintf("%+.f%+.f%+.f", $b, -$b, - -$b),
+			   sprintf("%+.f%+.f%+.f", $nb, -$nb, - -$nb)
+				if $b_is_z;
 		}
 	}
 }

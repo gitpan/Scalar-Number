@@ -1,3 +1,29 @@
+version 0.001; 2007-02-05
+
+  * bugfix: in comparison, handle all cases of integers not representable
+    as floats (sclnum_val_cmp() and sclnum_id_cmp() were broken for
+    systems where natint_bits > significand_bits+2)
+
+  * bugfix: in scalar_num_part(), sclnum_is_natint(), sclnum_is_float(),
+    sclnum_val_cmp(), and sclnum_id_cmp(), avoid side effects on zero
+    arguments (sign of a zero can be lost via perl bug #39875 in perl-5.8
+    and a similar problem in earlier perls)
+
+  * express large test values in hexadecimal to avoid bugs in decimal
+    conversions
+
+  * test handling of zero arguments in all functions, to ensure that
+    they don't destroy their signs via perl bug #39875 or the perl-5.6
+    equivalent
+
+  * loosen tests on zeroes in t/part.t to cope with perl-5.6's differing
+    behaviour for numeric values of strings and dualvar(0, $_)
+
+  * test classification with values originating both as integers and
+    as floats
+
+  * revised set of classification and comparison test cases
+
 version 0.000; 2007-01-23
 
   * initial released version

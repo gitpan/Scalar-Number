@@ -1,261 +1,358 @@
 use Test::More;
 
 use Data::Integer 0.000 qw(natint_bits);
-use Data::Float 0.000 qw(significand_bits);
+use Data::Float 0.005 qw(significand_bits hex_float);
 
 plan skip_all => "tests not designed for these word sizes"
 	unless natint_bits == 64 && significand_bits == 52;
-plan tests => 373;
+plan tests => 569;
+
 require_ok "Scalar::Number";
 Scalar::Number->import(qw(sclnum_is_natint sclnum_is_float));
 
 sub check($$$) {
 	my($expect_natint, $expect_float, $value) = @_;
-	my $desc = sprintf("status of %s (%.1f)", my $cval = $value, $value);
+	my $desc = sprintf("status of %s (%.1f)",
+			my $sval = $value, my $fval = $value);
 	is !!sclnum_is_natint($value), !!$expect_natint, "integer $desc";
 	is !!sclnum_is_float($value), !!$expect_float, "float $desc";
 }
 
-check 0, 1, -1.5;
+eval do { local $/; <DATA>; } or die $@;
+__DATA__
+local $SIG{__DIE__};
 
-# around +2^16
-check 1, 1, +65534;
-check 0, 1, +65534.5;
-check 1, 1, +65535;
-check 0, 1, +65535.5;
-check 1, 1, +65536;
-check 0, 1, +65536.5;
-check 1, 1, +65537;
-check 0, 1, +65537.5;
+no warnings "portable";
 
-# around -2^16
-check 1, 1, -65534;
-check 0, 1, -65534.5;
-check 1, 1, -65535;
-check 0, 1, -65535.5;
-check 1, 1, -65536;
-check 0, 1, -65536.5;
-check 1, 1, -65537;
-check 0, 1, -65537.5;
+# positive integers
 
-# around +2^24
-check 1, 1, +16777214;
-check 0, 1, +16777214.5;
-check 1, 1, +16777215;
-check 0, 1, +16777215.5;
-check 1, 1, +16777216;
-check 0, 1, +16777216.5;
-check 1, 1, +16777217;
-check 0, 1, +16777217.5;
+check 1, 1, +0xfffe;
+check 1, 1, +0xffff;
+check 1, 1, +0x10000;
+check 1, 1, +0x10001;
+check 1, 1, +0x10002;
 
-# around -2^24
-check 1, 1, -16777214;
-check 0, 1, -16777214.5;
-check 1, 1, -16777215;
-check 0, 1, -16777215.5;
-check 1, 1, -16777216;
-check 0, 1, -16777216.5;
-check 1, 1, -16777217;
-check 0, 1, -16777217.5;
+check 1, 1, +0xfffffe;
+check 1, 1, +0xffffff;
+check 1, 1, +0x1000000;
+check 1, 1, +0x1000001;
+check 1, 1, +0x1000002;
 
-# around +2^31
-check 1, 1, +2147483646;
-check 0, 1, +2147483646.5;
-check 1, 1, +2147483647;
-check 0, 1, +2147483647.5;
-check 1, 1, +2147483648;
-check 0, 1, +2147483648.5;
-check 1, 1, +2147483649;
-check 0, 1, +2147483649.5;
+check 1, 1, +0x7ffffffe;
+check 1, 1, +0x7fffffff;
+check 1, 1, +0x80000000;
+check 1, 1, +0x80000001;
+check 1, 1, +0x80000002;
 
-# around -2^31
-check 1, 1, -2147483646;
-check 0, 1, -2147483646.5;
-check 1, 1, -2147483647;
-check 0, 1, -2147483647.5;
-check 1, 1, -2147483648;
-check 0, 1, -2147483648.5;
-check 1, 1, -2147483649;
-check 0, 1, -2147483649.5;
+check 1, 1, +0xfffffffe;
+check 1, 1, +0xffffffff;
+check 1, 1, +0x100000000;
+check 1, 1, +0x100000001;
+check 1, 1, +0x100000002;
 
-# around +2^32
-check 1, 1, +4294967294;
-check 0, 1, +4294967294.5;
-check 1, 1, +4294967295;
-check 0, 1, +4294967295.5;
-check 1, 1, +4294967296;
-check 0, 1, +4294967296.5;
-check 1, 1, +4294967297;
-check 0, 1, +4294967297.5;
+check 1, 1, +0x1fffffffe;
+check 1, 1, +0x1ffffffff;
+check 1, 1, +0x200000000;
+check 1, 1, +0x200000001;
+check 1, 1, +0x200000002;
 
-# around -2^32
-check 1, 1, -4294967294;
-check 0, 1, -4294967294.5;
-check 1, 1, -4294967295;
-check 0, 1, -4294967295.5;
-check 1, 1, -4294967296;
-check 0, 1, -4294967296.5;
-check 1, 1, -4294967297;
-check 0, 1, -4294967297.5;
+check 1, 1, +0xffffffffffffe;
+check 1, 1, +0xfffffffffffff;
+check 1, 1, +0x10000000000000;
+check 1, 1, +0x10000000000001;
+check 1, 1, +0x10000000000002;
 
-# around +2^33
-check 1, 1, +8589934590;
-check 0, 1, +8589934590.5;
-check 1, 1, +8589934591;
-check 0, 1, +8589934591.5;
-check 1, 1, +8589934592;
-check 0, 1, +8589934592.5;
-check 1, 1, +8589934593;
-check 0, 1, +8589934593.5;
+check 1, 1, +0x1ffffffffffffe;
+check 1, 1, +0x1fffffffffffff;
+check 1, 1, +0x20000000000000;
+check 1, 0, +0x20000000000001;
+check 1, 1, +0x20000000000002;
+check 1, 0, +0x20000000000003;
+check 1, 1, +0x20000000000004;
 
-# around -2^33
-check 1, 1, -8589934590;
-check 0, 1, -8589934590.5;
-check 1, 1, -8589934591;
-check 0, 1, -8589934591.5;
-check 1, 1, -8589934592;
-check 0, 1, -8589934592.5;
-check 1, 1, -8589934593;
-check 0, 1, -8589934593.5;
+check 1, 1, +0x3ffffffffffffc;
+check 1, 0, +0x3ffffffffffffd;
+check 1, 1, +0x3ffffffffffffe;
+check 1, 0, +0x3fffffffffffff;
+check 1, 1, +0x40000000000000;
+check 1, 0, +0x40000000000001;
+check 1, 0, +0x40000000000002;
+check 1, 1, +0x40000000000004;
+check 1, 0, +0x40000000000006;
+check 1, 1, +0x40000000000008;
 
-# around +2^51
-check 1, 1, +2251799813685246;
-check 0, 1, +2251799813685246.5;
-check 1, 1, +2251799813685247;
-check 0, 1, +2251799813685247.5;
-check 1, 1, +2251799813685248;
-check 0, 1, +2251799813685248.5;
-check 1, 1, +2251799813685249;
-check 0, 1, +2251799813685249.5;
+check 1, 1, +0x7ffffffffffff800;
+check 1, 0, +0x7ffffffffffffa00;
+check 1, 1, +0x7ffffffffffffc00;
+check 1, 0, +0x7ffffffffffffe00;
+check 1, 0, +0x7ffffffffffffffe;
+check 1, 0, +0x7fffffffffffffff;
+check 1, 1, +0x8000000000000000;
+check 1, 0, +0x8000000000000001;
+check 1, 0, +0x8000000000000002;
+check 1, 0, +0x8000000000000400;
+check 1, 1, +0x8000000000000800;
+check 1, 0, +0x8000000000000c00;
+check 1, 1, +0x8000000000001000;
 
-# around -2^51
-check 1, 1, -2251799813685246;
-check 0, 1, -2251799813685246.5;
-check 1, 1, -2251799813685247;
-check 0, 1, -2251799813685247.5;
-check 1, 1, -2251799813685248;
-check 0, 1, -2251799813685248.5;
-check 1, 1, -2251799813685249;
-check 0, 1, -2251799813685249.5;
+check 1, 1, +0xfffffffffffff000;
+check 1, 0, +0xfffffffffffff400;
+check 1, 1, +0xfffffffffffff800;
+check 1, 0, +0xfffffffffffffc00;
+check 1, 0, +0xfffffffffffffffe;
+check 1, 0, +0xffffffffffffffff;
 
-# around +2^52
-check 1, 1, +4503599627370494;
-check 0, 1, +4503599627370494.5;
-check 1, 1, +4503599627370495;
-check 0, 1, +4503599627370495.5;
-check 1, 1, +4503599627370496;
-check 1, 1, +4503599627370497;
+# negative integers
 
-# around -2^52
-check 1, 1, -4503599627370494;
-check 0, 1, -4503599627370494.5;
-check 1, 1, -4503599627370495;
-check 0, 1, -4503599627370495.5;
-check 1, 1, -4503599627370496;
-check 1, 1, -4503599627370497;
+check 1, 1, -0xfffe;
+check 1, 1, -0xffff;
+check 1, 1, -0x10000;
+check 1, 1, -0x10001;
+check 1, 1, -0x10002;
 
-# around +2^53
-check 1, 1, +9007199254740990;
-check 1, 1, +9007199254740991;
-check 1, 1, +9007199254740992;
-check 1, 0, +9007199254740993;
-check 1, 1, +9007199254740994;
+check 1, 1, -0xfffffe;
+check 1, 1, -0xffffff;
+check 1, 1, -0x1000000;
+check 1, 1, -0x1000001;
+check 1, 1, -0x1000002;
 
-# around -2^53
-check 1, 1, -9007199254740990;
-check 1, 1, -9007199254740991;
-check 1, 1, -9007199254740992;
-check 1, 0, -9007199254740993;
-check 1, 1, -9007199254740994;
+check 1, 1, -0x7ffffffe;
+check 1, 1, -0x7fffffff;
+check 1, 1, -0x80000000;
+check 1, 1, -0x80000001;
+check 1, 1, -0x80000002;
 
-# around +2^54
-check 1, 1, +18014398509481980;
-check 1, 0, +18014398509481981;
-check 1, 1, +18014398509481982;
-check 1, 0, +18014398509481983;
-check 1, 1, +18014398509481984;
-check 1, 0, +18014398509481985;
-check 1, 1, +18014398509481988;
+check 1, 1, -0xfffffffe;
+check 1, 1, -0xffffffff;
+check 1, 1, -0x100000000;
+check 1, 1, -0x100000001;
+check 1, 1, -0x100000002;
 
-# around -2^54
-check 1, 1, -18014398509481980;
-check 1, 0, -18014398509481981;
-check 1, 1, -18014398509481982;
-check 1, 0, -18014398509481983;
-check 1, 1, -18014398509481984;
-check 1, 0, -18014398509481985;
-check 1, 1, -18014398509481988;
+check 1, 1, -0x1fffffffe;
+check 1, 1, -0x1ffffffff;
+check 1, 1, -0x200000000;
+check 1, 1, -0x200000001;
+check 1, 1, -0x200000002;
 
-# around +2^62
-check 1, 1, +4611686018427386880;
-check 1, 1, +4611686018427387392;
-check 1, 0, +4611686018427387902;
-check 1, 0, +4611686018427387903;
-check 1, 1, +4611686018427387904;
-check 1, 0, +4611686018427387905;
-check 1, 1, +4611686018427388928;
+check 1, 1, -0xffffffffffffe;
+check 1, 1, -0xfffffffffffff;
+check 1, 1, -0x10000000000000;
+check 1, 1, -0x10000000000001;
+check 1, 1, -0x10000000000002;
 
-# around -2^62
-check 1, 1, -4611686018427386880;
-check 1, 1, -4611686018427387392;
-check 1, 0, -4611686018427387902;
-check 1, 0, -4611686018427387903;
-check 1, 1, -4611686018427387904;
-check 1, 0, -4611686018427387905;
-check 1, 1, -4611686018427388928;
+check 1, 1, -0x1ffffffffffffe;
+check 1, 1, -0x1fffffffffffff;
+check 1, 1, -0x20000000000000;
+check 1, 0, -0x20000000000001;
+check 1, 1, -0x20000000000002;
+check 1, 0, -0x20000000000003;
+check 1, 1, -0x20000000000004;
 
-# around +2^63
-check 1, 1, +9223372036854773760;
-check 1, 1, +9223372036854774784;
-check 1, 0, +9223372036854775806;
-check 1, 0, +9223372036854775807;
-check 1, 1, +9223372036854775808;
-check 1, 0, +9223372036854775809;
-check 1, 1, +9223372036854777856;
+check 1, 1, -0x3ffffffffffffc;
+check 1, 0, -0x3ffffffffffffd;
+check 1, 1, -0x3ffffffffffffe;
+check 1, 0, -0x3fffffffffffff;
+check 1, 1, -0x40000000000000;
+check 1, 0, -0x40000000000001;
+check 1, 0, -0x40000000000002;
+check 1, 1, -0x40000000000004;
+check 1, 0, -0x40000000000006;
+check 1, 1, -0x40000000000008;
 
-# around -2^63
-check 1, 1, -9223372036854773760;
-check 1, 1, -9223372036854774784;
-check 1, 0, -9223372036854775806;
-check 1, 0, -9223372036854775807;
-check 1, 1, -9223372036854775808;
-check 0, 1, -9223372036854777856;
+check 1, 1, -0x7ffffffffffff800;
+check 1, 0, -0x7ffffffffffffa00;
+check 1, 1, -0x7ffffffffffffc00;
+check 1, 0, -0x7ffffffffffffe00;
+check 1, 0, -0x7ffffffffffffffe;
+check 1, 0, -0x7fffffffffffffff;
+check 1, 1, -0x8000000000000000;
 
-# around +2^64
-check 1, 1, +18446744073709547520;
-check 1, 1, +18446744073709549568;
-check 1, 0, +18446744073709551614;
-check 1, 0, +18446744073709551615;
-check 0, 1, +18446744073709551616;
-check 0, 1, +18446744073709555712;
+# positive floats
 
-# around -2^64
-check 0, 1, -18446744073709547520;
-check 0, 1, -18446744073709549568;
-check 0, 1, -18446744073709551616;
-check 0, 1, -18446744073709555712;
+check 1, 1, hex_float("+0x1.fffc000000000p+15");
+check 0, 1, hex_float("+0x1.fffd000000000p+15");
+check 1, 1, hex_float("+0x1.fffe000000000p+15");
+check 0, 1, hex_float("+0x1.ffff000000000p+15");
+check 0, 1, hex_float("+0x1.fffffffffffffp+15");
+check 1, 1, hex_float("+0x1.0000000000000p+16");
+check 0, 1, hex_float("+0x1.0000000000001p+16");
+check 0, 1, hex_float("+0x1.0000800000000p+16");
+check 1, 1, hex_float("+0x1.0001000000000p+16");
+check 0, 1, hex_float("+0x1.0001800000000p+16");
+check 1, 1, hex_float("+0x1.0002000000000p+16");
 
-# around +2^65
-check 0, 1, +36893488147419095040;
-check 0, 1, +36893488147419099136;
-check 0, 1, +36893488147419103232;
-check 0, 1, +36893488147419111424;
+check 1, 1, hex_float("+0x1.fffffc0000000p+23");
+check 0, 1, hex_float("+0x1.fffffd0000000p+23");
+check 1, 1, hex_float("+0x1.fffffe0000000p+23");
+check 0, 1, hex_float("+0x1.ffffff0000000p+23");
+check 0, 1, hex_float("+0x1.fffffffffffffp+23");
+check 1, 1, hex_float("+0x1.0000000000000p+24");
+check 0, 1, hex_float("+0x1.0000000000001p+24");
+check 0, 1, hex_float("+0x1.0000008000000p+24");
+check 1, 1, hex_float("+0x1.0000010000000p+24");
+check 0, 1, hex_float("+0x1.0000018000000p+24");
+check 1, 1, hex_float("+0x1.0000020000000p+24");
 
-# around -2^65
-check 0, 1, -36893488147419095040;
-check 0, 1, -36893488147419099136;
-check 0, 1, -36893488147419103232;
-check 0, 1, -36893488147419111424;
+check 1, 1, hex_float("+0x1.fffffff800000p+30");
+check 0, 1, hex_float("+0x1.fffffffa00000p+30");
+check 1, 1, hex_float("+0x1.fffffffc00000p+30");
+check 0, 1, hex_float("+0x1.fffffffe00000p+30");
+check 0, 1, hex_float("+0x1.fffffffffffffp+30");
+check 1, 1, hex_float("+0x1.0000000000000p+31");
+check 0, 1, hex_float("+0x1.0000000000001p+31");
+check 0, 1, hex_float("+0x1.0000000100000p+31");
+check 1, 1, hex_float("+0x1.0000000200000p+31");
+check 0, 1, hex_float("+0x1.0000000300000p+31");
+check 1, 1, hex_float("+0x1.0000000400000p+31");
 
-# around +2^66
-check 0, 1, +73786976294838190080;
-check 0, 1, +73786976294838198272;
-check 0, 1, +73786976294838206464;
-check 0, 1, +73786976294838222848;
+check 1, 1, hex_float("+0x1.fffffffc00000p+31");
+check 0, 1, hex_float("+0x1.fffffffd00000p+31");
+check 1, 1, hex_float("+0x1.fffffffe00000p+31");
+check 0, 1, hex_float("+0x1.ffffffff00000p+31");
+check 0, 1, hex_float("+0x1.fffffffffffffp+31");
+check 1, 1, hex_float("+0x1.0000000000000p+32");
+check 0, 1, hex_float("+0x1.0000000000001p+32");
+check 0, 1, hex_float("+0x1.0000000080000p+32");
+check 1, 1, hex_float("+0x1.0000000100000p+32");
+check 0, 1, hex_float("+0x1.0000000180000p+32");
+check 1, 1, hex_float("+0x1.0000000200000p+32");
 
-# around -2^66
-check 0, 1, -73786976294838190080;
-check 0, 1, -73786976294838198272;
-check 0, 1, -73786976294838206464;
-check 0, 1, -73786976294838222848;
+check 1, 1, hex_float("+0x1.fffffffe00000p+32");
+check 0, 1, hex_float("+0x1.fffffffe80000p+32");
+check 1, 1, hex_float("+0x1.ffffffff00000p+32");
+check 0, 1, hex_float("+0x1.ffffffff80000p+32");
+check 0, 1, hex_float("+0x1.fffffffffffffp+32");
+check 1, 1, hex_float("+0x1.0000000000000p+33");
+check 0, 1, hex_float("+0x1.0000000000001p+33");
+check 0, 1, hex_float("+0x1.0000000040000p+33");
+check 1, 1, hex_float("+0x1.0000000080000p+33");
+check 0, 1, hex_float("+0x1.00000000c0000p+33");
+check 1, 1, hex_float("+0x1.0000000100000p+33");
 
+check 1, 1, hex_float("+0x1.ffffffffffffcp+51");
+check 0, 1, hex_float("+0x1.ffffffffffffdp+51");
+check 1, 1, hex_float("+0x1.ffffffffffffep+51");
+check 0, 1, hex_float("+0x1.fffffffffffffp+51");
+check 1, 1, hex_float("+0x1.0000000000000p+52");
+check 1, 1, hex_float("+0x1.0000000000001p+52");
+check 1, 1, hex_float("+0x1.0000000000002p+52");
+
+check 1, 1, hex_float("+0x1.ffffffffffffep+52");
+check 1, 1, hex_float("+0x1.fffffffffffffp+52");
+check 1, 1, hex_float("+0x1.0000000000000p+53");
+check 1, 1, hex_float("+0x1.0000000000001p+53");
+check 1, 1, hex_float("+0x1.0000000000002p+53");
+
+check 1, 1, hex_float("+0x1.ffffffffffffep+62");
+check 1, 1, hex_float("+0x1.fffffffffffffp+62");
+check 1, 1, hex_float("+0x1.0000000000000p+63");
+check 1, 1, hex_float("+0x1.0000000000001p+63");
+check 1, 1, hex_float("+0x1.0000000000002p+63");
+
+check 1, 1, hex_float("+0x1.ffffffffffffep+63");
+check 1, 1, hex_float("+0x1.fffffffffffffp+63");
+check 0, 1, hex_float("+0x1.0000000000000p+64");
+check 0, 1, hex_float("+0x1.0000000000001p+64");
+check 0, 1, hex_float("+0x1.0000000000002p+64");
+
+check 0, 1, hex_float("+0x1.ffffffffffffep+64");
+check 0, 1, hex_float("+0x1.fffffffffffffp+64");
+check 0, 1, hex_float("+0x1.0000000000000p+65");
+check 0, 1, hex_float("+0x1.0000000000001p+65");
+check 0, 1, hex_float("+0x1.0000000000002p+65");
+
+# negative floats
+
+check 1, 1, hex_float("-0x1.fffc000000000p+15");
+check 0, 1, hex_float("-0x1.fffd000000000p+15");
+check 1, 1, hex_float("-0x1.fffe000000000p+15");
+check 0, 1, hex_float("-0x1.ffff000000000p+15");
+check 0, 1, hex_float("-0x1.fffffffffffffp+15");
+check 1, 1, hex_float("-0x1.0000000000000p+16");
+check 0, 1, hex_float("-0x1.0000000000001p+16");
+check 0, 1, hex_float("-0x1.0000800000000p+16");
+check 1, 1, hex_float("-0x1.0001000000000p+16");
+check 0, 1, hex_float("-0x1.0001800000000p+16");
+check 1, 1, hex_float("-0x1.0002000000000p+16");
+
+check 1, 1, hex_float("-0x1.fffffc0000000p+23");
+check 0, 1, hex_float("-0x1.fffffd0000000p+23");
+check 1, 1, hex_float("-0x1.fffffe0000000p+23");
+check 0, 1, hex_float("-0x1.ffffff0000000p+23");
+check 0, 1, hex_float("-0x1.fffffffffffffp+23");
+check 1, 1, hex_float("-0x1.0000000000000p+24");
+check 0, 1, hex_float("-0x1.0000000000001p+24");
+check 0, 1, hex_float("-0x1.0000008000000p+24");
+check 1, 1, hex_float("-0x1.0000010000000p+24");
+check 0, 1, hex_float("-0x1.0000018000000p+24");
+check 1, 1, hex_float("-0x1.0000020000000p+24");
+
+check 1, 1, hex_float("-0x1.fffffff800000p+30");
+check 0, 1, hex_float("-0x1.fffffffa00000p+30");
+check 1, 1, hex_float("-0x1.fffffffc00000p+30");
+check 0, 1, hex_float("-0x1.fffffffe00000p+30");
+check 0, 1, hex_float("-0x1.fffffffffffffp+30");
+check 1, 1, hex_float("-0x1.0000000000000p+31");
+check 0, 1, hex_float("-0x1.0000000000001p+31");
+check 0, 1, hex_float("-0x1.0000000100000p+31");
+check 1, 1, hex_float("-0x1.0000000200000p+31");
+check 0, 1, hex_float("-0x1.0000000300000p+31");
+check 1, 1, hex_float("-0x1.0000000400000p+31");
+
+check 1, 1, hex_float("-0x1.fffffffc00000p+31");
+check 0, 1, hex_float("-0x1.fffffffd00000p+31");
+check 1, 1, hex_float("-0x1.fffffffe00000p+31");
+check 0, 1, hex_float("-0x1.ffffffff00000p+31");
+check 0, 1, hex_float("-0x1.fffffffffffffp+31");
+check 1, 1, hex_float("-0x1.0000000000000p+32");
+check 0, 1, hex_float("-0x1.0000000000001p+32");
+check 0, 1, hex_float("-0x1.0000000080000p+32");
+check 1, 1, hex_float("-0x1.0000000100000p+32");
+check 0, 1, hex_float("-0x1.0000000180000p+32");
+check 1, 1, hex_float("-0x1.0000000200000p+32");
+
+check 1, 1, hex_float("-0x1.fffffffe00000p+32");
+check 0, 1, hex_float("-0x1.fffffffe80000p+32");
+check 1, 1, hex_float("-0x1.ffffffff00000p+32");
+check 0, 1, hex_float("-0x1.ffffffff80000p+32");
+check 0, 1, hex_float("-0x1.fffffffffffffp+32");
+check 1, 1, hex_float("-0x1.0000000000000p+33");
+check 0, 1, hex_float("-0x1.0000000000001p+33");
+check 0, 1, hex_float("-0x1.0000000040000p+33");
+check 1, 1, hex_float("-0x1.0000000080000p+33");
+check 0, 1, hex_float("-0x1.00000000c0000p+33");
+check 1, 1, hex_float("-0x1.0000000100000p+33");
+
+check 1, 1, hex_float("-0x1.ffffffffffffcp+51");
+check 0, 1, hex_float("-0x1.ffffffffffffdp+51");
+check 1, 1, hex_float("-0x1.ffffffffffffep+51");
+check 0, 1, hex_float("-0x1.fffffffffffffp+51");
+check 1, 1, hex_float("-0x1.0000000000000p+52");
+check 1, 1, hex_float("-0x1.0000000000001p+52");
+check 1, 1, hex_float("-0x1.0000000000002p+52");
+
+check 1, 1, hex_float("-0x1.ffffffffffffep+52");
+check 1, 1, hex_float("-0x1.fffffffffffffp+52");
+check 1, 1, hex_float("-0x1.0000000000000p+53");
+check 1, 1, hex_float("-0x1.0000000000001p+53");
+check 1, 1, hex_float("-0x1.0000000000002p+53");
+
+check 1, 1, hex_float("-0x1.ffffffffffffep+62");
+check 1, 1, hex_float("-0x1.fffffffffffffp+62");
+check 1, 1, hex_float("-0x1.0000000000000p+63");
+check 0, 1, hex_float("-0x1.0000000000001p+63");
+check 0, 1, hex_float("-0x1.0000000000002p+63");
+
+check 0, 1, hex_float("-0x1.ffffffffffffep+63");
+check 0, 1, hex_float("-0x1.fffffffffffffp+63");
+check 0, 1, hex_float("-0x1.0000000000000p+64");
+check 0, 1, hex_float("-0x1.0000000000001p+64");
+check 0, 1, hex_float("-0x1.0000000000002p+64");
+
+check 0, 1, hex_float("-0x1.ffffffffffffep+64");
+check 0, 1, hex_float("-0x1.fffffffffffffp+64");
+check 0, 1, hex_float("-0x1.0000000000000p+65");
+check 0, 1, hex_float("-0x1.0000000000001p+65");
+check 0, 1, hex_float("-0x1.0000000000002p+65");
+
+1;
