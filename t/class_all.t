@@ -6,10 +6,10 @@ BEGIN { use_ok "Scalar::Number", qw(sclnum_is_natint sclnum_is_float); }
 
 sub check($$$) {
 	my($expect_natint, $expect_float, $value) = @_;
-	my $desc = sprintf("status of %s (%.1f)",
-			my $sval = $value, my $fval = $value);
-	is !!sclnum_is_natint($value), !!$expect_natint, "integer $desc";
-	is !!sclnum_is_float($value), !!$expect_float, "float $desc";
+	my $desc = eval { sprintf(" of %s (%.1f)",
+				my $sval = $value, my $fval = $value) } || "";
+	is !!sclnum_is_natint($value), !!$expect_natint, "integer status$desc";
+	is !!sclnum_is_float($value), !!$expect_float, "float status$desc";
 }
 
 if(have_signed_zero) {

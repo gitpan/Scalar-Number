@@ -46,7 +46,7 @@ use Data::Float 0.004 qw(
 );
 use Data::Integer 0.000 qw(natint_bits min_natint max_natint);
 
-our $VERSION = "0.001";
+our $VERSION = "0.002";
 
 use base "Exporter";
 our @EXPORT_OK = qw(
@@ -326,6 +326,17 @@ sub sclnum_id_cmp($$) {
 }
 
 =back
+
+=head1 BUGS
+
+In Perl 5.6, if configured with a wider-than-usual native integer type
+such that there are native integers that can't be represented exactly in
+the native floating point type, it is not always possible to distinguish
+between integer and floating point values.  In order to get the full
+benefit of either type, one is expected (by the numeric semantics) to
+know which of them one is using.  This module will not work, and will
+fail its test suite, on such a system.  This problem is resolved by Perl
+5.8's new numeric semantics.
 
 =head1 SEE ALSO
 

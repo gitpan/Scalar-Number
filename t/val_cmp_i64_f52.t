@@ -231,8 +231,8 @@ for(my $ia = @values; $ia--; ) {
 			skip "special value not available", 1
 				unless defined($a) && defined($b);
 			is sclnum_val_cmp($a, $b), ($ia <=> $ib),
-				sprintf("%s (%.1f) <=> %s (%.1f)",
-					$a, $a, $b, $b);
+				eval { sprintf("%s (%.1f) <=> %s (%.1f)",
+						$a, $a, $b, $b) } || "";
 		}
 	}
 }
