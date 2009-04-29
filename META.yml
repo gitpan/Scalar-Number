@@ -1,12 +1,40 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Scalar-Number
-version:      0.002
-version_from: lib/Scalar/Number.pm
-installdirs:  site
+---
+name: Scalar-Number
+version: 0.003
+author:
+  - 'Andrew Main (Zefram) <zefram@fysh.org>'
+abstract: numeric aspects of scalars
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
 requires:
-    Data::Float:                   0.005
-    Data::Integer:                 0.000
-
+  Carp: 0
+  Data::Float: 0.008
+  Data::Integer: 0.003
+  Exporter: 0
+  constant: 0
+  overload: 0
+  parent: 0
+  perl: 5.006
+  strict: 0
+  warnings: 0
+build_requires:
+  Data::Float: 0.008
+  Data::Integer: 0.003
+  Module::Build: 0
+  Test::More: 0
+  perl: 5.006
+  strict: 0
+  warnings: 0
+recommends:
+  XSLoader: 0
+dynamic_config: 1
+provides:
+  Scalar::Number:
+    file: lib/Scalar/Number.pm
+    version: 0.003
+generated_by: Module::Build version 0.31012
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30_01

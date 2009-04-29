@@ -32,6 +32,9 @@ This module provides functions to extract the numeric part of a scalar,
 classify a number by expressibility, and compare numbers across
 representations.
 
+This module is implemented in XS, with a pure Perl backup version for
+systems that can't handle XS.
+
 =cut
 
 package Scalar::Number;
@@ -39,21 +42,74 @@ package Scalar::Number;
 use warnings;
 use strict;
 
-use Carp qw(croak);
-use Data::Float 0.004 qw(
-	have_signed_zero significand_bits max_integer
-	float_is_infinite pow2 mult_pow2
-);
-use Data::Integer 0.000 qw(natint_bits min_natint max_natint);
+our $VERSION = "0.003";
 
-our $VERSION = "0.002";
-
-use base "Exporter";
+use parent "Exporter";
 our @EXPORT_OK = qw(
 	scalar_num_part
 	sclnum_is_natint sclnum_is_float
 	sclnum_val_cmp sclnum_id_cmp
 );
+
+eval { local $SIG{__DIE__};
+	require XSLoader;
+	XSLoader::load(__PACKAGE__, $VERSION);
+};
+
+if($@ eq "") {
+	close(DATA);
+	*scalar_num_part = sub($) {
+		no warnings qw(numeric uninitialized);
+		return _warnable_scalar_num_part($_[0]);
+	};
+} else {
+	local $/ = undef;
+	my $pp_code = <DATA>;
+	close(DATA);
+	{
+		local $SIG{__DIE__};
+		eval $pp_code;
+	}
+	die $@ if $@ ne "";
+}
+
+1;
+
+__DATA__
+
+use Carp qw(croak);
+use Data::Float 0.008 qw(
+	have_signed_zero significand_bits max_integer
+	float_is_infinite pow2 mult_pow2
+);
+use Data::Integer 0.003 qw(natint_bits min_natint max_natint hex_natint);
+use overload ();
+
+BEGIN {
+	# In perl 5.6, arithmetic is performed in floating point by default,
+	# even if the arguments are native integers that lose precision upon
+	# conversion to float.  If there are such native integers then these
+	# semantics make it impossible in some cases to tell the difference
+	# between an integer and a nearby floating point value.  Specifically,
+	# the maximum integer and its float approximation (which has a
+	# numeric value 1 higher) are indistinguishable.  In that case, this
+	# module cannot be implemented in pure Perl.  Detect that here by
+	# max_natint-2 appearing to be even.  (perl 5.6.0 has even more messed
+	# up arithmetic, such that max_natint%2 misleadingly gives the result
+	# 1.)
+	if((max_natint-2) % 2 != 1) {
+		die "Scalar::Number cannot operate in pure Perl due to there ".
+			"being native integer values not exactly ".
+			"representable as native floats combined with ".
+			"uncooperative numeric semantics";
+	}
+	# With that case excluded, it is guaranteed that default arithmetic
+	# will operate correctly on all native integer values when performing
+	# operations within the native integer range.  The correctness is
+	# either due to perl 5.8+ numeric semantics, which perform such
+	# operations in native integer arithmetic, or due to all native
+	# integers being losslessly representable in floating point.
+}
 
 # Floating point constants arount max_natint: high_max has the value
 # max_natint+1, and low_max is the next lower floating point value.
@@ -74,7 +130,29 @@ use constant low_max => ((1 << (natint_bits-1)) -
 			(1 << (natint_bits-1));
 use constant reduced_high_max => 1 << (natint_bits - (significand_bits+1));
 
+BEGIN {
+	# We need the refaddr() function from Scalar::Util.  However, if
+	# Scalar::Util isn't available then we can reimplement it less
+	# efficiently.
+	eval { local $SIG{__DIE__}; require Scalar::Util; };
+	if($@ eq "") {
+		*refaddr = \&Scalar::Util::refaddr;
+	} else {
+		*refaddr = sub($) {
+			overload::StrVal($_[0]) =~ /0x([0-9a-f]+)\)\z/
+				or die "don't understand StrVal output";
+			return hex_natint($1);
+		};
+	}
+}
+
 =head1 FUNCTIONS
+
+Each "sclnum_" function takes one or more scalar numeric arguments
+to operate on.  These arguments must be numeric; giving non-numeric
+arguments will cause mayhem.  See L<Params::Classify/is_number> for a way
+to check for numericness.  Only the numeric value of the scalar is used;
+the string value is completely ignored, so dualvars are not a problem.
 
 =head2 Decomposition
 
@@ -83,7 +161,7 @@ use constant reduced_high_max => 1 << (natint_bits - (significand_bits+1));
 =item scalar_num_part(SCALAR)
 
 Extracts the numeric value of SCALAR, and returns it as a pure numeric
-scalar.
+scalar.  The argument is permitted to be any scalar.
 
 Every scalar has both a string value and a numeric value.  In pure string
 scalars, those resulting from string literals or string operations,
@@ -108,13 +186,36 @@ my %zero = (
 	"-0+0" => -0.0,
 );
 sub scalar_num_part($) {
-	my($scalar) = @_;
-	no warnings "numeric";
-	if(have_signed_zero && $scalar == 0) {
-		my $val = $_[0];
+	my($val) = @_;
+	no warnings qw(numeric uninitialized);
+	while(ref($val) ne "") {
+		my $meth = overload::Method($val, "0+");
+		return refaddr($val) unless defined $meth;
+		my $newval = eval { local $SIG{__DIE__};
+			$meth->($val, undef, "");
+		};
+		if($@ ne "" || (ref($newval) ne "" &&
+				refaddr($newval) == refaddr($val))) {
+			return refaddr($val);
+		}
+		$val = $newval;
+	}
+	if(have_signed_zero && (my $tval = $val) == 0) {
+		if(!defined($val) || ref(\$val) eq "GLOB") {
+			$val = 0.0;
+		} elsif(do {
+			my $warned;
+			local $SIG{__WARN__} = sub { $warned = 1; };
+			use warnings qw(numeric uninitialized);
+			no warnings "void";
+			0 + (my $tval = $val);
+			$warned;
+		}) {
+			$val = "0";
+		}
 		return my $zero = $zero{sprintf("%+.f%+.f", $val, -$val)};
 	} else {
-		return 0 + $scalar;
+		return 0 + $val;
 	}
 }
 
@@ -126,13 +227,10 @@ sub scalar_num_part($) {
 
 =item sclnum_is_natint(VALUE)
 
-Returns a boolean indicating whether the provided VALUE can be represented
+Returns a truth value indicating whether the provided VALUE can be represented
 in the native integer data type.  If the floating point type includes
 signed zeroes then they do not qualify; the only zero representable in
 the integer type is unsigned.
-
-Only the numeric value of the scalar VALUE is examined.  The string
-value is ignored.
 
 =cut
 
@@ -177,13 +275,10 @@ sub sclnum_is_natint($) {
 
 =item sclnum_is_float(VALUE)
 
-Returns a boolean indicating whether the provided VALUE can be represented
+Returns a truth value indicating whether the provided VALUE can be represented
 in the native floating point data type.  If the floating point type
 includes signed zeroes then an unsigned zero (from the native integer
 type) does not qualify.
-
-Only the numeric value of the scalar VALUE is examined.  The string
-value is ignored.
 
 =cut
 
@@ -250,13 +345,20 @@ is the capability to compare integer against floating point (where neither
 can be represented exactly in the other's format).  <=> performs such
 comparisons in floating point, losing accuracy of the integer value.
 
-Only the numeric values of the scalars A and B are examined.  The string
-values are ignored.
-
 =cut
 
 sub sclnum_val_cmp($$) {
 	my($a, $b) = @_;
+	# Due to perl bug #41202, a text->float conversion sometimes
+	# gives the wrong answer, but if a text->integer conversion is
+	# done first then a later integer->float conversion can give a
+	# more accurate answer.  Here we trigger such text->integer
+	# conversions, in the situations where it is useful.
+	{
+		no warnings "void";
+		0 + $a;
+		0 + $b;
+	}
 	# Comparison between an integer and a float might be lossy.
 	# Specifically, it could show values as equal when they're
 	# not.  It can never show equal values as unequal, or give
@@ -300,9 +402,6 @@ then positive infinity.
 In addition to sorting, this function can be useful to check for a zero
 of a particular sign.
 
-Only the numeric values of the scalars A and B are examined.  The string
-values are ignored.
-
 =cut
 
 my %zero_order = (
@@ -332,11 +431,11 @@ sub sclnum_id_cmp($$) {
 In Perl 5.6, if configured with a wider-than-usual native integer type
 such that there are native integers that can't be represented exactly in
 the native floating point type, it is not always possible to distinguish
-between integer and floating point values.  In order to get the full
-benefit of either type, one is expected (by the numeric semantics) to
-know which of them one is using.  This module will not work, and will
-fail its test suite, on such a system.  This problem is resolved by Perl
-5.8's new numeric semantics.
+between integer and floating point values in pure Perl code.  In order
+to get the full benefit of either type, one is expected (by the numeric
+semantics) to know in advance which of them one is using.  The pure Perl
+version of this module can't operate on such a system, but the XS version
+works fine.  This problem is resolved by Perl 5.8's new numeric semantics.
 
 =head1 SEE ALSO
 
@@ -350,7 +449,9 @@ Andrew Main (Zefram) <zefram@fysh.org>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2007 Andrew Main (Zefram) <zefram@fysh.org>
+Copyright (C) 2007, 2009 Andrew Main (Zefram) <zefram@fysh.org>
+
+=head1 LICENSE
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

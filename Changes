@@ -1,3 +1,55 @@
+version 0.003; 2009-04-29
+
+  * bugfix: when loading pure Perl implementation, check for numeric
+    semantics that make it impossible to operate correctly (perl 5.6
+    with integers longer than floats), and refuse to load if the module
+    won't work right
+
+  * bugfix: in sclnum_val_cmp(), work around perl bug #41202 which
+    caused some comparisons on values originating as strings to yield
+    the wrong answers
+
+  * bugfix: in scalar_num_part(), handle numeric conversions of non-number
+    types correctly
+
+  * bugfix: require bugfixed version of Data::Integer (it gave incorrect
+    constants on perl 5.6)
+
+  * bugfix: require bugfixed version of Data::Float (for $SIG{__DIE__}
+    handling)
+
+  * XS implementation, used if available with fallback to existing pure
+    Perl implementation if XS is not available; the XS implementation
+    works on Perl 5.6 with wide integers
+
+  * test classification and comparison functions with values that are
+    internally expressed in each possible way
+
+  * test classification and value comparison functions with a set of
+    test values that adapts to the format widths encountered, rather
+    than using separate test scripts for each combination of format widths
+
+  * change very lengthy value comparison test function to not run as
+    part of the default test suite
+
+  * document that sclnum_*() functions must be given only numeric
+    arguments
+
+  * use simpler "parent" pragma in place of "base"
+
+  * in documentation, use the term "truth value" instead of the less
+    precise "boolean"
+
+  * test POD syntax and coverage
+
+  * build with Module::Build instead of ExtUtils::MakeMaker
+
+  * complete dependency list
+
+  * include signature in distribution
+
+  * in documentation, separate "license" section from "copyright" section
+
 version 0.002; 2007-09-02
 
   * in tests, catch exceptions from sprintf("%.1f", $_), to work around a

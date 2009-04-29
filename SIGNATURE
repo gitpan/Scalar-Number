@@ -1,0 +1,46 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.55.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It will check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+SHA1 5d9ea9284e9c176a668c88dbf16e46a6f6f00c41 .cvsignore
+SHA1 c100bcd3f420801db375ea80fd852f0e9bcfb686 Build.PL
+SHA1 133813b6e43a874e138d64be1459d1564e8b71b7 Changes
+SHA1 040c7640154a8aa4207ce1a22fa2489d52328352 MANIFEST
+SHA1 5d83ba52315df5341476919e5e19c8f0235e06ba META.yml
+SHA1 684ab827ae5405876abe203f5a032ffa6b575cf7 Makefile.PL
+SHA1 0c435061be67398463511c4e991fc1168f4f7108 README
+SHA1 b5c0b4101833065a1b5822cbdff0465330f52f80 lib/Scalar/.cvsignore
+SHA1 bd16671f0a948197a420d387e18ed6dbf3d825c2 lib/Scalar/Number.pm
+SHA1 adc2998f14d6afccdb28f4f3e9fca22f0d3d9971 lib/Scalar/Number.xs
+SHA1 873e3af6b48699eab9c77e1cad9434c1467efac9 t/class.t
+SHA1 7c2c99152a6b3a60b1e236762d17dae873c6de78 t/class_pp.t
+SHA1 64fae460f6a1322cc7f91db1403f3c79ff97d509 t/id_cmp.t
+SHA1 8ba2a397831cf260662f2d91f08a65c90c7ce71a t/id_cmp_pp.t
+SHA1 ee342126c606b17dc9e225c79bab22783d574c95 t/num_forms.pl
+SHA1 56b25ba9618d155bd7a7d52b2b9ec19f367689fd t/part.t
+SHA1 1386d05ae655d38de426ccf7abf253339d2faecf t/part_pp.t
+SHA1 0e141eecf3ca4903ef38d9413b5403a9ddb0392f t/pod_cvg.t
+SHA1 74a957cd8b93f25672ecc6aa578a671d084dd343 t/pod_syn.t
+SHA1 ff8983e6aa98339774459694db104fcec0bd0987 t/setup_pp.pl
+SHA1 515d7bb5d0c21832edc0a1c29509f36c5b95698b t/val_cmp.at
+SHA1 9eb602d316820b4779373e94992140dd5937f87e t/val_cmp_pp.at
+SHA1 006502a882473614f46463941e42004a9b1f6096 t/values.data
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAkn4r44ACgkQOV9mt2VyAVEzWgCcDa7fyPKHydBBfW18Q4HQazj2
+3Z0AniIsmZZonAskFZxCrOBQdAOVG+eJ
+=QnzT
+-----END PGP SIGNATURE-----

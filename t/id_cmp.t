@@ -1,50 +1,38 @@
-use Test::More tests => 353;
+use Data::Float 0.008 qw(have_signed_zero have_nan have_infinite);
+use Test::More;
 
-use Data::Float 0.000 qw(have_infinite have_signed_zero have_nan pow2);
-
-BEGIN { use_ok "Scalar::Number", qw(sclnum_id_cmp); }
-
+do "t/num_forms.pl" or die $@ || $!;
 my @values = (
-	sub { have_nan ? &{"Data::Float::nan"} : undef },
-	sub { have_infinite ? &{"Data::Float::neg_infinity"} : undef },
-	-pow2(100),
-	-1000,
-	-123.25,
-	-1,
-	-0.125,
-	sub { have_signed_zero ? &{"Data::Float::neg_zero"} : undef },
-	0,
-	sub { have_signed_zero ? &{"Data::Float::pos_zero"} : undef },
-	+0.125,
-	+1,
-	+123.25,
-	+1000,
-	+pow2(100),
-	sub { have_infinite ? &{"Data::Float::pos_infinity"} : undef },
+	have_nan ? [ float_forms("nan") ] : [],
+	have_infinite ? [ float_forms("-inf") ] : [],
+	[ float_forms("-0x1p+130") ],
+	[ natint_forms("-0x401"), float_forms("-0x1.004p+10") ],
+	[ float_forms("-0x1.edp+6") ],
+	[ natint_forms("-0x1"), float_forms("-0x1p+0") ],
+	[ float_forms("-0x1.1p-3") ],
+	have_signed_zero ? [ float_forms(-0.0) ] : [],
+	have_signed_zero ? [ natint_forms(0) ] : [ natint_forms(0), float_forms(0) ],
+	have_signed_zero ? [ float_forms(+0.0) ] : [],
+	[ float_forms("+0x1.1p-3") ],
+	[ natint_forms("+0x1"), float_forms("+0x1p+0") ],
+	[ float_forms("+0x1.edp+6") ],
+	[ natint_forms("+0x401"), float_forms("+0x1.004p+10") ],
+	[ float_forms("+0x1p+130") ],
+	have_infinite ? [ float_forms("+inf") ] : [],
 );
 
-foreach(@values) {
-	$_ = $_->() if ref($_) eq "CODE";
-}
+my $nforms = 0;
+$nforms += @$_ foreach @values;
+plan tests => 1 + $nforms*$nforms;
 
-for(my $ia = @values; $ia--; ) {
-	for(my $ib = @values; $ib--; ) {
-		SKIP: {
-			my $a = $values[$ia];
-			my $b = $values[$ib];
-			my $a_is_z = ($ia >= 7 && $ia < 10) ? 1 : 0;
-			my $b_is_z = ($ib >= 7 && $ib < 10) ? 1 : 0;
-			skip "special value not available", 1+$a_is_z+$b_is_z
-				unless defined($a) && defined($b);
-			my $na = $a;
-			my $nb = $b;
-			is sclnum_id_cmp($a, $b), ($ia <=> $ib);
-			is sprintf("%+.f%+.f%+.f", $a, -$a, - -$a),
-			   sprintf("%+.f%+.f%+.f", $na, -$na, - -$na)
-				if $a_is_z;
-			is sprintf("%+.f%+.f%+.f", $b, -$b, - -$b),
-			   sprintf("%+.f%+.f%+.f", $nb, -$nb, - -$nb)
-				if $b_is_z;
-		}
-	}
-}
+use_ok "Scalar::Number", qw(sclnum_id_cmp);
+
+for(my $ia = @values; $ia--; ) { foreach my $va (@{$values[$ia]}) {
+	for(my $ib = @values; $ib--; ) { foreach my $vb (@{$values[$ib]}) {
+		my($ta, $tb) = ($va, $vb);
+		is sclnum_id_cmp($ta, $tb), ($ia <=> $ib),
+			"id[$ia] <=> id[$ib]";
+	} }
+} }
+
+1;
