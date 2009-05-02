@@ -1,6 +1,6 @@
 ---
 name: Scalar-Number
-version: 0.003
+version: 0.004
 author:
   - 'Andrew Main (Zefram) <zefram@fysh.org>'
 abstract: numeric aspects of scalars
@@ -32,7 +32,7 @@ dynamic_config: 1
 provides:
   Scalar::Number:
     file: lib/Scalar/Number.pm
-    version: 0.003
+    version: 0.004
 generated_by: Module::Build version 0.31012
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

@@ -1,3 +1,8 @@
+version 0.004; 2009-05-02
+
+  * load some modules at build time instead of configure time, to avoid
+    dependency problems
+
 version 0.003; 2009-04-29
 
   * bugfix: when loading pure Perl implementation, check for numeric

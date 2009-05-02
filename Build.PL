@@ -33,13 +33,16 @@ Module::Build->subclass(code => q{
 		return $self->SUPER::find_xs_files;
 	}
 	sub compile_c {
-		use Data::Float 0.008 qw(have_signed_zero significand_bits);
-		use Data::Integer 0.001 qw(natint_bits);
+		require Data::Float;
+		Data::Float->VERSION("0.008");
+		require Data::Integer;
+		Data::Integer->VERSION("0.001");
 		my($self, $file, %args) = @_;
 		$args{defines} = { %{$args{defines} || {}},
-			Q_HAVE_SIGNED_ZERO => have_signed_zero ? 1 : 0,
-			Q_SIGNIFICAND_BITS => significand_bits,
-			Q_NATINT_BITS => natint_bits,
+			Q_HAVE_SIGNED_ZERO =>
+				Data::Float::have_signed_zero() ? 1 : 0,
+			Q_SIGNIFICAND_BITS => Data::Float::significand_bits(),
+			Q_NATINT_BITS => Data::Integer::natint_bits(),
 		};
 		return $self->SUPER::compile_c($file, %args);
 	}

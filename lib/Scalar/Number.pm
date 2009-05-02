@@ -42,7 +42,7 @@ package Scalar::Number;
 use warnings;
 use strict;
 
-our $VERSION = "0.003";
+our $VERSION = "0.004";
 
 use parent "Exporter";
 our @EXPORT_OK = qw(
