@@ -16,6 +16,7 @@ t/num_forms.pl
 t/part.t
 t/part_pp.t
 t/pod_cvg.t
+t/pod_cvg_pp.t
 t/pod_syn.t
 t/setup_pp.pl
 t/values.data

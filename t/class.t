@@ -1,3 +1,6 @@
+use warnings;
+use strict;
+
 use Data::Float 0.008
 	qw(have_signed_zero have_nan have_infinite significand_bits);
 use Data::Integer 0.001 qw(natint_bits);

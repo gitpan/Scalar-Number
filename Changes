@@ -1,3 +1,25 @@
+version 0.005; 2010-10-20
+
+  * in XS, use PERL_NO_GET_CONTEXT for efficiency
+
+  * in XS, declare all local symbols static
+
+  * check for required Perl version at runtime
+
+  * use full stricture in test suite
+
+  * also test POD coverage of pure Perl implementation, and rename an
+    internal function to satisfy the coverage test
+
+  * in Build.PL, explicitly set needs_compiler to avoid bogus
+    auto-dependency on ExtUtils::CBuilder
+
+  * in Build.PL, explicitly declare configure-time requirements
+
+  * remove bogus "exit 0" from Build.PL
+
+  * add MYMETA.yml to .cvsignore
+
 version 0.004; 2009-05-02
 
   * load some modules at build time instead of configure time, to avoid

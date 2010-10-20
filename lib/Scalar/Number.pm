@@ -39,10 +39,11 @@ systems that can't handle XS.
 
 package Scalar::Number;
 
+{ use 5.006; }
 use warnings;
 use strict;
 
-our $VERSION = "0.004";
+our $VERSION = "0.005";
 
 use parent "Exporter";
 our @EXPORT_OK = qw(
@@ -136,9 +137,9 @@ BEGIN {
 	# efficiently.
 	eval { local $SIG{__DIE__}; require Scalar::Util; };
 	if($@ eq "") {
-		*refaddr = \&Scalar::Util::refaddr;
+		*_refaddr = \&Scalar::Util::refaddr;
 	} else {
-		*refaddr = sub($) {
+		*_refaddr = sub($) {
 			overload::StrVal($_[0]) =~ /0x([0-9a-f]+)\)\z/
 				or die "don't understand StrVal output";
 			return hex_natint($1);
@@ -190,13 +191,13 @@ sub scalar_num_part($) {
 	no warnings qw(numeric uninitialized);
 	while(ref($val) ne "") {
 		my $meth = overload::Method($val, "0+");
-		return refaddr($val) unless defined $meth;
+		return _refaddr($val) unless defined $meth;
 		my $newval = eval { local $SIG{__DIE__};
 			$meth->($val, undef, "");
 		};
 		if($@ ne "" || (ref($newval) ne "" &&
-				refaddr($newval) == refaddr($val))) {
-			return refaddr($val);
+				_refaddr($newval) == _refaddr($val))) {
+			return _refaddr($val);
 		}
 		$val = $newval;
 	}
@@ -449,7 +450,7 @@ Andrew Main (Zefram) <zefram@fysh.org>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2007, 2009 Andrew Main (Zefram) <zefram@fysh.org>
+Copyright (C) 2007, 2009, 2010 Andrew Main (Zefram) <zefram@fysh.org>
 
 =head1 LICENSE
 

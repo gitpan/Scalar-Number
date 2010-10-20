@@ -1,3 +1,4 @@
+#define PERL_NO_GET_CONTEXT 1
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -26,7 +27,7 @@
  * Which set of rules applies is controlled by the iok_maybe_spurious flag.
  */
 
-int iok_maybe_spurious;
+static int iok_maybe_spurious;
 
 /*
  * string_2num() resolves a string SV into one that has the same numeric
@@ -36,7 +37,8 @@ int iok_maybe_spurious;
  * have an unrelated string value.  Warns for non-numeric strings.
  */
 
-static SV *string_2num(SV *s)
+#define string_2num(s) THX_string_2num(aTHX_ s)
+static SV *THX_string_2num(pTHX_ SV *s)
 {
 	if(SvIOK(s) || SvNOK(s)) return s;
 	s = sv_mortalcopy(s);
@@ -81,7 +83,8 @@ static SV *string_2num(SV *s)
    the boot function. */
 static NV neg_natint_limit, pos_natint_limit;
 
-static SV *numscl_val_cmp(SV *a, SV *b)
+#define numscl_val_cmp(a, b) THX_numscl_val_cmp(aTHX_ a, b)
+static SV *THX_numscl_val_cmp(pTHX_ SV *a, SV *b)
 {
 	bool aiok, biok;
 	int result;

@@ -1,12 +1,34 @@
 ---
-name: Scalar-Number
-version: 0.004
+abstract: 'numeric aspects of scalars'
 author:
   - 'Andrew Main (Zefram) <zefram@fysh.org>'
-abstract: numeric aspects of scalars
+build_requires:
+  Data::Float: 0.008
+  Data::Integer: 0.003
+  Module::Build: 0
+  Test::More: 0
+  perl: 5.006
+  strict: 0
+  warnings: 0
+configure_requires:
+  Module::Build: 0
+  perl: 5.006
+  strict: 0
+  warnings: 0
+distribution_type: module
+dynamic_config: 1
+generated_by: 'Module::Build version 0.3607'
 license: perl
-resources:
-  license: http://dev.perl.org/licenses/
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Scalar-Number
+provides:
+  Scalar::Number:
+    file: lib/Scalar/Number.pm
+    version: 0.005
+recommends:
+  XSLoader: 0
 requires:
   Carp: 0
   Data::Float: 0.008
@@ -18,23 +40,6 @@ requires:
   perl: 5.006
   strict: 0
   warnings: 0
-build_requires:
-  Data::Float: 0.008
-  Data::Integer: 0.003
-  Module::Build: 0
-  Test::More: 0
-  perl: 5.006
-  strict: 0
-  warnings: 0
-recommends:
-  XSLoader: 0
-dynamic_config: 1
-provides:
-  Scalar::Number:
-    file: lib/Scalar/Number.pm
-    version: 0.004
-generated_by: Module::Build version 0.31012
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
-distribution_type: module
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.005

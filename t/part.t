@@ -1,3 +1,6 @@
+use warnings;
+use strict;
+
 use Data::Integer 0.003 qw(min_sint max_uint hex_natint);
 use Test::More tests => 1 + 3 + 4*22 + 5*8 + 6*2;
 
