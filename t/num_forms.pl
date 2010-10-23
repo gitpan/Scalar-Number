@@ -4,10 +4,7 @@ use strict;
 use Data::Float 0.008;
 use Data::Integer 0.003;
 
-sub zero_flavour($) {
-	my($v) = @_;
-	return sprintf("%+.f%+.f%+.f", $v, -$v, - -$v);
-}
+sub zpat($) { my($z) = @_; my $nz = -$z; sprintf("%+.f%+.f%+.f",$z,$nz,-$nz) }
 
 sub natint_forms($) {
 	my($hex) = @_;
@@ -24,8 +21,8 @@ sub natint_forms($) {
 		push @forms, $fval;
 	}
 	if((my $t = $ival) == 0) {
-		push @forms, "0.0";
-		@forms = grep { zero_flavour($_) eq "+0+0+0" } @forms;
+		push @forms, "0", "0.0", "+0", "+0.0", "-0", "-0.0";
+		@forms = grep { zpat($_) eq "+0+0+0" } @forms;
 	}
 	return @forms;
 }
@@ -48,10 +45,9 @@ sub float_forms($) {
 	{ no warnings "void"; use integer; $ival + 0; }
 	my @forms = ($fval, $ival);
 	if($class eq "ZERO") {
-		push @forms, "0", "0.0";
-		push @forms, sprintf("%+.f", $fval), sprintf("%+.1f", $fval);
-		my $flavour = zero_flavour($fval);
-		@forms = grep { zero_flavour($_) eq $flavour } @forms;
+		push @forms, "0", "0.0", "+0", "+0.0", "-0", "-0.0";
+		my $flavour = zpat($fval);
+		@forms = grep { zpat($_) eq $flavour } @forms;
 	}
 	return @forms;
 }

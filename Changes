@@ -1,3 +1,21 @@
+version 0.006; 2010-10-23
+
+  * port to Perl 5.13.6, which changed the behaviour of signed zeroes
+    in Perl arithmetic
+
+  * fix test suite's treatment of signed zeroes in some places, where
+    it was liable to produce false test failures depending on the C
+    library implementation
+
+  * in XS, turn the runtime-determined iok_maybe_spurious flag into a
+    compile-time constant derived from the Perl version number
+
+  * in XS, declare "PROTOTYPES: DISABLE" to prevent automatic generation
+    of unintended prototypes
+
+  * in t/setup_pp.pl, avoid a warning that occurs if XSLoader::load()
+    is given no arguments, which is now a valid usage
+
 version 0.005; 2010-10-20
 
   * in XS, use PERL_NO_GET_CONTEXT for efficiency

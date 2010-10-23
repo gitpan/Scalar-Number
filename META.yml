@@ -26,7 +26,7 @@ name: Scalar-Number
 provides:
   Scalar::Number:
     file: lib/Scalar/Number.pm
-    version: 0.005
+    version: 0.006
 recommends:
   XSLoader: 0
 requires:
@@ -42,4 +42,4 @@ requires:
   warnings: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.005
+version: 0.006

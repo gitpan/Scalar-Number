@@ -33,7 +33,6 @@ plan tests => 1 + 2*@zeroes*$nforms + $nforms*$nforms;
 
 use_ok "Scalar::Number", qw(sclnum_val_cmp);
 
-sub zpat($) { my($z) = @_; sprintf("%+.f%+.f%+.f", $z, -$z, - -$z) }
 foreach my $vz (@zeroes) {
 	my $pz = zpat($vz);
 	for(my $ib = @values; $ib--; ) { foreach my $vb (@{$values[$ib]}) {

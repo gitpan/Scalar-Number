@@ -12,7 +12,7 @@ my $orig_load = \&XSLoader::load;
 no warnings "redefine";
 *XSLoader::load = sub {
 	die "XS loading disabled for Scalar::Number"
-		if $_[0] eq "Scalar::Number";
+		if ($_[0] || "") eq "Scalar::Number";
 	goto &$orig_load;
 };
 

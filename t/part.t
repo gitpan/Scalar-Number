@@ -11,7 +11,7 @@ BEGIN { use_ok "Scalar::Number", qw(scalar_num_part sclnum_id_cmp); }
 foreach my $nzero (0, +0.0, -0.0) {
 	my $tzero = $nzero;
 	scalar_num_part($tzero);
-	is zero_flavour($tzero), zero_flavour($nzero);
+	is zpat($tzero), zpat($nzero);
 }
 
 sub match($$) {
@@ -23,7 +23,7 @@ sub match($$) {
 	if((my $t = $_[1]) == 0) {
 		my $tn = $num_part;
 		my $tc = $_[1];
-		is zero_flavour($tn), zero_flavour($tc);
+		is zpat($tn), zpat($tc);
 	} else {
 		ok 1;
 	}

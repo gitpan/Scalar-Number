@@ -3,11 +3,20 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#define PERL_VERSION_DECIMAL(r,v,s) (r*1000000 + v*1000 + s)
+#define PERL_DECIMAL_VERSION \
+	PERL_VERSION_DECIMAL(PERL_REVISION,PERL_VERSION,PERL_SUBVERSION)
+#define PERL_VERSION_GE(r,v,s) \
+	(PERL_DECIMAL_VERSION >= PERL_VERSION_DECIMAL(r,v,s))
+
+#define Q_IOK_MAYBE_SPURIOUS (!PERL_VERSION_GE(5,7,1))
+#define Q_STRING_ZERO_FLOATS PERL_VERSION_GE(5,13,6)
+
 /*
  * The way an SV is interpreted for its numerical value varies between Perl
- * versions.  The new way (perl 5.8+) is that the IOK and NOK flags
+ * versions.  The new way (perl 5.7.1+) is that the IOK and NOK flags
  * strictly indicate that the numerical value is acceptably represented by
- * the corresponding field.  The old way (up to perl 5.6) is that the IOK
+ * the corresponding field.  The old way (up to perl 5.7.0) is that the IOK
  * and NOK flags indicate that the corresponding field is filled, but it
  * might be a conversion from the other form.  In the old form, most
  * arithmetic is floating point, so to handle an integer that can't be
@@ -24,10 +33,8 @@
  * new   yes  no   use IV/UV
  * new   yes  yes  use IV/UV
  *
- * Which set of rules applies is controlled by the iok_maybe_spurious flag.
+ * Which set of rules applies is controlled by the Q_IOK_MAYBE_SPURIOUS flag.
  */
-
-static int iok_maybe_spurious;
 
 /*
  * string_2num() resolves a string SV into one that has the same numeric
@@ -42,27 +49,36 @@ static SV *THX_string_2num(pTHX_ SV *s)
 {
 	if(SvIOK(s) || SvNOK(s)) return s;
 	s = sv_mortalcopy(s);
-	if(!iok_maybe_spurious && (SvIV(s), SvIOK(s))) {
+	if(!Q_IOK_MAYBE_SPURIOUS && (SvIV(s), SvIOK(s))) {
 		if(Q_HAVE_SIGNED_ZERO && SvIVX(s) == 0) {
 			/* It's a zero, and asking for SvIV has squashed
 			 * it to an integer zero, but it wouldn't
-			 * necessarily be considered an integer zero by
-			 * other operations.  To match the behaviour of
-			 * the printf("%.f")-based test, we regard the
-			 * behaviour of the negate operation canonical.
-			 * This preserves sign iff the string value
-			 * starts with a sign.
+			 * necessarily be considered an integer zero
+			 * by other operations.  We seek to match the
+			 * behaviour of the printf("%.f")-based test,
+			 * thus regarding the behaviour of the negate
+			 * operation canonical.
 			 */
-			char c = *SvPV_nolen(s);
-			if(c == '-') {
-				sv_setnv(s, -0.0);
-				SvIOK_off(s);
-			} else if(c == '+') {
-				sv_setnv(s, 0.0);
-				SvIOK_off(s);
+			if(Q_STRING_ZERO_FLOATS) {
+				/* String zeroes now always turn into
+				 * floating-point zeroes.
+				 */
+				sv_setnv(s, SvNV(s));
 			} else {
-				sv_setiv(s, 0);
-				SvNOK_off(s);
+				/* Preserve sign iff the string value
+				 * starts with a sign character.
+				 */
+				char c = *SvPV_nolen(s);
+				if(c == '-') {
+					sv_setnv(s, -0.0);
+					SvIOK_off(s);
+				} else if(c == '+') {
+					sv_setnv(s, 0.0);
+					SvIOK_off(s);
+				} else {
+					sv_setiv(s, 0);
+					SvNOK_off(s);
+				}
 			}
 		}
 	} else {
@@ -88,8 +104,8 @@ static SV *THX_numscl_val_cmp(pTHX_ SV *a, SV *b)
 {
 	bool aiok, biok;
 	int result;
-	aiok = iok_maybe_spurious ? !SvNOK(a) : !!SvIOK(a);
-	biok = iok_maybe_spurious ? !SvNOK(b) : !!SvIOK(b);
+	aiok = Q_IOK_MAYBE_SPURIOUS ? !SvNOK(a) : !!SvIOK(a);
+	biok = Q_IOK_MAYBE_SPURIOUS ? !SvNOK(b) : !!SvIOK(b);
 	if(aiok && biok) {
 		if(SvIOK_UV(a)) {
 			if(SvIOK_UV(b)) {
@@ -155,13 +171,9 @@ static SV *THX_numscl_val_cmp(pTHX_ SV *a, SV *b)
 
 MODULE = Scalar::Number PACKAGE = Scalar::Number
 
+PROTOTYPES: DISABLE
+
 BOOT:
-{
-	SV *t = newSVnv(0.5);
-	(void) SvIV(t);
-	iok_maybe_spurious = !!SvIOK(t);
-	SvREFCNT_dec(t);
-}
 {
 	int i;
 	neg_natint_limit = -1.0;
@@ -187,7 +199,7 @@ CODE:
 		scalar = sv_2mortal(newSVuv(PTR2UV(SvRV(scalar))));
 	}
 	scalar = string_2num(scalar);
-	if(iok_maybe_spurious && SvNOK(scalar)) {
+	if(Q_IOK_MAYBE_SPURIOUS && SvNOK(scalar)) {
 		RETVAL = newSVnv(SvNVX(scalar));
 	} else if(SvIOK_notUV(scalar)) {
 		RETVAL = newSViv(SvIVX(scalar));
@@ -204,7 +216,7 @@ sclnum_is_natint(SV *scalar)
 PROTOTYPE: $
 CODE:
 	scalar = string_2num(scalar);
-	if(iok_maybe_spurious ? !SvNOK(scalar) : SvIOK(scalar)) {
+	if(Q_IOK_MAYBE_SPURIOUS ? !SvNOK(scalar) : SvIOK(scalar)) {
 		RETVAL = 1;
 	} else {
 		NV val = SvNVX(scalar);
@@ -227,7 +239,7 @@ PROTOTYPE: $
 CODE:
 	scalar = string_2num(scalar);
 	if(SvNOK(scalar)) {
-		RETVAL = !(Q_HAVE_SIGNED_ZERO && !iok_maybe_spurious &&
+		RETVAL = !(Q_HAVE_SIGNED_ZERO && !Q_IOK_MAYBE_SPURIOUS &&
 				SvIOK(scalar) && SvIVX(scalar) == 0);
 	} else {
 		UV mag = SvIOK_UV(scalar) ? SvUVX(scalar) :
@@ -273,8 +285,8 @@ PREINIT:
 CODE:
 	a = string_2num(a);
 	b = string_2num(b);
-	aiok = iok_maybe_spurious ? !SvNOK(a) : !!SvIOK(a);
-	biok = iok_maybe_spurious ? !SvNOK(b) : !!SvIOK(b);
+	aiok = Q_IOK_MAYBE_SPURIOUS ? !SvNOK(a) : !!SvIOK(a);
+	biok = Q_IOK_MAYBE_SPURIOUS ? !SvNOK(b) : !!SvIOK(b);
 	anan = !aiok && SvNVX(a) != SvNVX(a);
 	bnan = !biok && SvNVX(b) != SvNVX(b);
 	if(anan || bnan) {

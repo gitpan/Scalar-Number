@@ -19,12 +19,12 @@ while(1) {
 	if($_ eq "z") {
 		if(have_signed_zero) {
 			push @tests,
-				[ 1, 0, [ natint_forms(0) ] ],
-				[ 0, 1, [ float_forms(+0.0) ] ],
-				[ 0, 1, [ float_forms(-0.0) ] ];
+				[ 1, 0, [ natint_forms("0") ] ],
+				[ 0, 1, [ float_forms("+0") ] ],
+				[ 0, 1, [ float_forms("-0") ] ];
 		} else {
 			push @tests, [ 1, 1,
-				[ natint_forms(0), float_forms(0) ] ];
+				[ natint_forms("0"), float_forms("0") ] ];
 		}
 		next;
 	}
@@ -50,7 +50,7 @@ foreach my $func (\&sclnum_is_natint, \&sclnum_is_float) {
 		my $nzero = $ozero;
 		my $tzero = $ozero;
 		$func->($tzero);
-		is zero_flavour($tzero), zero_flavour($nzero);
+		is zpat($tzero), zpat($nzero);
 	}
 }
 
